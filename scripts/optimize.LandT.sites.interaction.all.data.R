@@ -194,7 +194,7 @@ WLs <- seq(WLa,WLb,Delta_WL)
 pos <- which(400:2500 %in% WLs)
 Nwl <- length(pos)
 
-data.spectra <- readRDS("/home/femeunier/Documents/projects/LianaHPDA/data/All.spectra.ID.RDS") %>% group_by(GF,Species,Ind,site) %>% mutate(ind.id = cur_group_id()) %>%
+data.spectra <- readRDS("./data/All.spectra.ID.RDS") %>% group_by(GF,Species,Ind,site) %>% mutate(ind.id = cur_group_id()) %>%
   group_by(GF,Species,Ind,site,name) %>% mutate(leaf.id = cur_group_id()) %>%
   mutate(value2 = value,
          value = case_when(wv %in% c(400:680,800:2500) ~ value,
