@@ -222,20 +222,20 @@ data.spectra_L_FTS <- data.spectra %>% filter(GF == "Liana",
 
 N = 5
 
-N_T_PNM <- ncol((data.spectra_T_PNM %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())[,1:N])
-N_T_FTS <- ncol((data.spectra_T_FTS %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())[,1:N])
-N_L_PNM <- ncol((data.spectra_L_PNM %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())[,1:N])
-N_L_FTS <- ncol((data.spectra_L_FTS %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())[,1:N])
+N_T_PNM <- ncol((data.spectra_T_PNM %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t()))
+N_T_FTS <- ncol((data.spectra_T_FTS %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t()))
+N_L_PNM <- ncol((data.spectra_L_PNM %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t()))
+N_L_FTS <- ncol((data.spectra_L_FTS %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t()))
 
-Data <- list(obs_reflectance = cbind((data.spectra_T_PNM %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())[,1:N],
-                                     (data.spectra_T_FTS %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())[,1:N],
-                                     (data.spectra_L_PNM %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())[,1:N],
-                                     (data.spectra_L_FTS %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())[,1:N]))
+Data <- list(obs_reflectance = cbind((data.spectra_T_PNM %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t()),
+                                     (data.spectra_T_FTS %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t()),
+                                     (data.spectra_L_PNM %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t()),
+                                     (data.spectra_L_FTS %>% pull(value) %>% matrix(ncol = length(WLs)) %>% t())))
 
-Data2 <- list(obs_reflectance = cbind((data.spectra_T_PNM %>% pull(value2) %>% matrix(ncol = length(WLs)) %>% t())[,1:N],
-                                      (data.spectra_T_FTS %>% pull(value2) %>% matrix(ncol = length(WLs)) %>% t())[,1:N],
-                                      (data.spectra_L_PNM %>% pull(value2) %>% matrix(ncol = length(WLs)) %>% t())[,1:N],
-                                      (data.spectra_L_FTS %>% pull(value2) %>% matrix(ncol = length(WLs)) %>% t())[,1:N]))
+Data2 <- list(obs_reflectance = cbind((data.spectra_T_PNM %>% pull(value2) %>% matrix(ncol = length(WLs)) %>% t()),
+                                      (data.spectra_T_FTS %>% pull(value2) %>% matrix(ncol = length(WLs)) %>% t()),
+                                      (data.spectra_L_PNM %>% pull(value2) %>% matrix(ncol = length(WLs)) %>% t()),
+                                      (data.spectra_L_FTS %>% pull(value2) %>% matrix(ncol = length(WLs)) %>% t())))
 
 par(mfrow = c(1,1))
 matplot(WLs,Data2$obs_reflectance[,1:(N_T_PNM + N_T_FTS)],type = 'l',col = "darkgreen")
