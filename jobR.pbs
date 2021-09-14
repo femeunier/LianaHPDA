@@ -1,0 +1,11 @@
+#!/bin/bash
+#PBS -N NIMBLE_prospect
+#PBS -l walltime=24:00:00
+#PBS -l nodes=1:ppn=1
+#PBS -l mem=16gb
+#PBS -o log/simR.o$PBS_JOBID
+#PBS -e log/simR.e$PBS_JOBID
+
+cd /data/gent/vo/000/gvo00074/felicien/R/LianaHPDA
+source load.sh
+Rscript scripts/optimize.HPC.R
