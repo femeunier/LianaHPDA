@@ -394,13 +394,13 @@ par(mfrow = c(1,2))
 matplot(WLs,Simu[,1:Nsimu],type = 'l',col = "darkgreen",ylim = c(0,0.6))
 matlines(WLs,Simu[,2*Nsimu + (1:Nsimu)],type = 'l',col = "darkblue")
 lines(WLs,rowMeans(Data2$obs_reflectance[,1:N_T_PNM]),type = 'l',col = c("black","black"),lwd = 2,lty = c(1,2))
-lines(WLs,rowMeans(Data2$obs_reflectance[,(N_T_PNM + N_T_PNM) + (1:N_L_PNM)]),type = 'l',col = c("black","black"),lwd = 2,lty = c(1,2))
+lines(WLs,rowMeans(Data2$obs_reflectance[,(N_T_PNM + N_T_FTS) + (1:N_L_PNM)]),type = 'l',col = c("black","black"),lwd = 2,lty = c(1,2))
 
 # FTS
 matplot(WLs,Simu[,Nsimu + (1:Nsimu)],type = 'l',col = "darkgreen",ylim = c(0,0.6))
 matlines(WLs,Simu[,3*Nsimu + (1:Nsimu)],type = 'l',col = "darkblue")
 lines(WLs,rowMeans(Data2$obs_reflectance[,N_T_PNM + (1:N_T_FTS)]),type = 'l',col = c("black","black"),lwd = 2,lty = c(1,2))
-lines(WLs,rowMeans(Data2$obs_reflectance[,(N_T_PNM + N_T_PNM + N_L_PNM) + (1:N_L_FTS)]),type = 'l',col = c("black","black"),lwd = 2,lty = c(1,2))
+lines(WLs,rowMeans(Data2$obs_reflectance[,(N_T_PNM + N_T_FTS + N_L_PNM) + (1:N_L_FTS)]),type = 'l',col = c("black","black"),lwd = 2,lty = c(1,2))
 
 
 df_l <- data.frame(mcmc.out$samples$chain1) %>% rename(N = Nmean,

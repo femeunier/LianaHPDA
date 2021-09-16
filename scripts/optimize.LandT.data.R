@@ -160,40 +160,81 @@ run_prospect5 <- nimbleCode({
 
 })
 
-data.spectra <- readRDS("./data/All.spectra.RDS") %>% group_by(GF,Species,Ind,site) %>% mutate(ind.id = cur_group_id()) %>%
-  group_by(GF,Species,Ind,site,name) %>% mutate(leaf.id = cur_group_id()) %>%
-  mutate(value2 = value,
-         value = case_when(wv %in% c(500:680,800:2500) ~ value,
-                           TRUE ~ NA_real_))
-
-data.spectra_T_PNM <- data.spectra %>% filter(GF == "Tree",
-                                              site == "PNM") %>%
-  group_by(wv) %>% summarise(value = mean(value),
-                             .groups = "drop") %>% dplyr::select(value)
-
-data.spectra_T_FTS <- data.spectra %>% filter(GF == "Tree",
-                                              site == "FTS") %>%
-  group_by(wv) %>% summarise(value = mean(value),
-                             .groups = "drop") %>% dplyr::select(value)
-
-data.spectra_L_PNM <- data.spectra %>% filter(GF == "Liana",
-                                              site == "PNM") %>%
-  group_by(wv) %>% summarise(value = mean(value),
-                             .groups = "drop") %>% dplyr::select(value)
-
-data.spectra_L_FTS <- data.spectra %>% filter(GF == "Liana",
-                                              site == "FTS") %>%
-  group_by(wv) %>% summarise(value = mean(value),
-                             .groups = "drop") %>% dplyr::select(value)
-
-
 WLa <- 400
 WLb <- 2500
-Delta_WL <- 5
+Delta_WL <- 50
 
 WLs <- seq(WLa,WLb,Delta_WL)
 pos <- which(400:2500 %in% WLs)
 Nwl <- length(pos)
+
+data.spectra <- readRDS("./data/All.spectra.ID.RDS") %>%
+  group_by(GF,site,Species) %>% mutate(species.id = cur_group_id()) %>% group_by(GF,site) %>% mutate(species.id = species.id - min(species.id) + 1) %>%
+  group_by(GF,site,species.id,Ind) %>% mutate(ind.id = cur_group_id()) %>% group_by(GF,site,species.id) %>% mutate(ind.id = ind.id - min(ind.id) + 1) %>%
+  group_by(GF,site,species.id,ind.id,name) %>% mutate(leaf.id = cur_group_id()) %>% group_by(GF,site,species.id,ind.id) %>% mutate(leaf.id = leaf.id - min(leaf.id) + 1) %>%
+  mutate(value2 = value,
+         value = case_when(wv %in% c(400:680,800:2500) ~ value,
+                           TRUE ~ NA_real_))
+
+data.spectra_T_PNM <- data.spectra %>% filter(GF == "Tree",
+                                              site == "PNM",
+                                              wv %in% WLs) %>%
+  group_by(wv) %>% summarise(value = mean(value),
+                             .groups = "drop") %>% dplyr::select(value)
+
+data.spectra_T_FTS <- data.spectra %>% filter(GF == "Tree",
+                                              site == "FTS",
+                                              wv %in% WLs) %>%
+  group_by(wv) %>% summarise(value = mean(value),
+                             .groups = "drop") %>% dplyr::select(value)
+
+data.spectra_L_PNM <- data.spectra %>% filter(GF == "Liana",
+                                              site == "PNM",
+                                              wv %in% WLs) %>%
+  group_by(wv) %>% summarise(value = mean(value),
+                             .groups = "drop") %>% dplyr::select(value)
+
+data.spectra_L_FTS <- data.spectra %>% filter(GF == "Liana",
+                                              site == "FTS",
+                                              wv %in% WLs) %>%
+  group_by(wv) %>% summarise(value = mean(value),
+                             .groups = "drop") %>% dplyr::select(value)
+
+
+GFs <- c('Tree','Liana')
+sites <- c('PNM','FTS')
+
+maxNspecies <- Inf
+maxNind <- Inf
+
+array_obs_reflectance <- array(data = NA, dim = c(Nwl,2,2,30,15,3))
+Nspecies <- array(data = NA, dim = c(2,2))
+Nind <- array(data = NA, dim = c(2,2,30))
+
+for (iGF in seq(1,length(GFs))){
+  for (isite in seq(1,length(sites))){
+    cdata <- data.spectra %>% filter(GF == GFs[iGF],
+                                     site == sites[isite])
+    Nspecies[iGF,isite] <- min(maxNspecies,length(unique(cdata$species.id)))
+
+    for (ispecies in seq(1,Nspecies[iGF,isite])){
+      ccdata <- cdata %>% filter(species.id == ispecies)
+      Nind[iGF,isite,ispecies] <- min(maxNind,length(unique(ccdata$ind.id)))
+
+      for (iind in seq(1, Nind[iGF,isite,ispecies])){
+        cccdata <- ccdata %>% filter(ind.id == iind)
+
+        array_obs_reflectance[,iGF,isite,ispecies,iind,1] <- cccdata %>% filter(name == 1) %>% filter(wv %in% WLs) %>% arrange(wv) %>% pull(value)
+        array_obs_reflectance[,iGF,isite,ispecies,iind,2] <- cccdata %>% filter(name == 2) %>% filter(wv %in% WLs) %>% arrange(wv) %>% pull(value)
+        array_obs_reflectance[,iGF,isite,ispecies,iind,3] <- cccdata %>% filter(name == 3) %>% filter(wv %in% WLs) %>% arrange(wv) %>% pull(value)
+      }
+    }
+  }
+}
+
+maxNspecies <- max(Nspecies,na.rm = TRUE)
+maxNind <- max(Nind,na.rm = TRUE)
+
 
 Data <- list(obs_reflectance = cbind(data.spectra_T_PNM,
                                      data.spectra_T_FTS,
@@ -261,6 +302,8 @@ mcmc.out <- nimbleMCMC(code = P5model,
 MCMCsamples <- mcmc.out$samples
 # matplot((matrix(MCMCsamples$chain1[1,19:1702],ncol = 4)),type = 'l')
 
+
+
 param <- MCMCsamples[,1:12]
 
 param_X = 5
@@ -268,16 +311,97 @@ param_X = 5
 plot(param[,c(0,6) + param_X])
 pairs(as.matrix(param[,c(0,6) + param_X]), pch = '.')
 
-Nsimu <- 1000
+Nsimu <- 100
 
 if (Nchains == 1){
   pos.simu <- sample(1:nrow(MCMCsamples),Nsimu)
   param_all <- MCMCsamples[pos.simu,1:12]
 } else {
   pos.simu <- sample(1:nrow(MCMCsamples[[1]]),Nsimu)
-  param_all <- do.call(rbind,lapply(1:Nchains,function(i) MCMCsamples[[i]][pos.simu,1:12]))
+  param_all <- do.call(rbind,lapply(1:Nchains,function(i) MCMCsamples[[i]][pos.simu,1:12]))[sample(1:(Nchains*Nsimu),Nsimu),]
 }
 
+array_mod_reflectance <- array(data = NA, dim = c(dim(array_obs_reflectance)[1:5],Nsimu))
+all_N <- all_Cab <- all_Car <- all_Cw <- all_Cm <- array(data = NA, dim = c(dim(array_obs_reflectance)[2:5],Nsimu),dimnames = list(c("Tree","Liana"),
+                                                                                                                                   c("PNM","FTS"),
+                                                                                                                                   seq(1,30),
+                                                                                                                                   seq(1:15),
+                                                                                                                                   seq(1:Nsimu)))
+NGF <- 2
+Nsite <- c(2,2)
+
+for(iGF in 1:NGF){
+  for (isite in 1:Nsite[iGF]){
+    for (ispecies in 1:Nspecies[iGF,isite]){
+
+      print(c(iGF,isite,ispecies))
+
+      for (iind in 1:Nind[iGF,isite,ispecies]){
+
+        cN <- param_all[,"Nmean"] + (iGF - 1)*param_all[,"alpha_N"]
+        all_N[iGF,isite,ispecies,iind,] <- cN
+
+        cCab <- param_all[,"Cabmean"] + (iGF - 1)*param_all[,"alpha_Cab"]
+        all_Cab[iGF,isite,ispecies,iind,] <- cCab
+
+        cCar <- param_all[,"Carmean"] + (iGF - 1)*param_all[,"alpha_Car"]
+        all_Car[iGF,isite,ispecies,iind,] <- cCar
+
+        cCw <- param_all[,"Cwmean"] + (iGF - 1)*param_all[,"alpha_Cw"]
+        all_Cw[iGF,isite,ispecies,iind,] <- cCw
+
+        cCm <- param_all[,"Cmmean"] + (iGF - 1)*param_all[,"alpha_Cm"]
+        all_Cm[iGF,isite,ispecies,iind,] <- cCm
+
+        tmp <- matrix(unlist(lapply(1:Nsimu,function(ileaf){
+          rrtm::prospect5(N = cN[ileaf],
+                          Cab = cCab[ileaf],
+                          Car = cCar[ileaf],
+                          Cbrown = 0,
+                          Cw = cCw[ileaf],
+                          Cm = cCm[ileaf])[["reflectance"]][pos]})),ncol = Nsimu)
+
+
+
+        array_mod_reflectance[,iGF,isite,ispecies,iind,] <- tmp
+
+        # matplot(WLs,tmp[,1:Nsimu],type = 'l',col = "black")
+        # matlines(WLs,Data$obs_reflectance[,iGF,isite,ispecies,iind,],col = "red")
+        # lines(WLs,apply(Data$obs_reflectance[,iGF,isite,ispecies,iind,],1,mean),col = "red",lwd = 2)
+
+      }
+    }
+  }
+}
+
+
+# Individual level
+Y <- as.vector(apply(array_obs_reflectance,c(1,2,3,4,5),mean))
+X <- as.vector(apply(array_mod_reflectance,c(1,2,3,4,5),mean))
+plot(X,Y)
+
+abline(a = 0, b = 1, col ='red')
+LM <- lm(data.frame(x = X,y = Y),formula = y ~ x)
+
+summary(LM)
+anovobj<-aov(LM)
+allssq<-summary(anovobj)[[1]][,2]
+
+sqrt(c(crossprod(LM$residuals))/length(LM$residuals))
+
+# GF/site level
+Y <- as.vector(apply(array_obs_reflectance,c(1,2,3),mean,na.rm = TRUE))
+X <- as.vector(apply(array_mod_reflectance,c(1,2,3),mean,na.rm = TRUE))
+plot(X,Y)
+abline(a = 0, b = 1, col ='red')
+LM <- lm(data.frame(x = X,y = Y),formula = y ~ x)
+
+summary(LM)
+
+anovobj<-aov(LM)
+allssq<-summary(anovobj)[[1]][,2]
+
+sqrt(c(crossprod(LM$residuals))/length(LM$residuals))
 
 Simu <- cbind(
   # Tree, PNM

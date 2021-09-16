@@ -8,6 +8,7 @@ library(tidyr)
 library(ggplot2)
 library(ggridges)
 library(reshape2)
+library(rrtm)
 
 e1_approx <- nimbleFunction(
   run = function(x = double(1)) {
@@ -263,7 +264,7 @@ P5model <- nimbleModel(run_prospect5,
 
 P5model$initializeInfo()
 
-Nchains = 2
+Nchains = 1
 mcmc.out <- nimbleMCMC(code = P5model,
                        constants = Constants,
                        monitors = c("mean_N","mean_Cab","mean_Car","mean_Cw","mean_Cm","Standard.Dev",
@@ -274,8 +275,9 @@ mcmc.out <- nimbleMCMC(code = P5model,
                        data = Data,
                        inits = Inits,
                        nburnin = 2000,
+                       thin = 10,
                        nchains = Nchains,
-                       niter = 5000,
+                       niter = 3000,
                        summary = TRUE,
                        WAIC = TRUE,
                        samplesAsCodaMCMC = TRUE)
@@ -286,16 +288,23 @@ param <- MCMCsamples[,]
 param_X = 5
 
 plot(param[,c("mean_N","alpha_N","beta_N[1]","beta_N[2]")])
-plot(param[,which(grepl("delta_Cw",colnames(param$chain1)))[3]])
+pairs(as.matrix(param[,c("mean_N","alpha_N","beta_N[1]","beta_N[2]")]), pch = '.')
+
+plot(param[,which(grepl("delta_Cw",colnames(param)))[1:4]])
 
 
-Nsimu <- 1000
-pos.simu <- sample(1:nrow(MCMCsamples[[1]]),Nsimu)
-param_all <- do.call(rbind,lapply(1:Nchains,function(i) MCMCsamples[[i]][pos.simu,]))
+Nsimu <- min(1000,nrow(MCMCsamples))
+pos.simu <- sample(1:nrow(MCMCsamples),Nsimu)
+param_all <- do.call(rbind,lapply(1:Nchains,function(i) MCMCsamples[pos.simu,]))
 
 # iGF <- isite <- ispecies <- iind <- 2
 
-array_mod_reflectance <- array(data = NA, dim = c(Nwl,2,2,2,2,Nsimu))
+array_mod_reflectance <- array(data = NA, dim = c(dim(array_obs_reflectance)[1:5],Nsimu))
+all_N <- all_Cab <- all_Car <- all_Cw <- all_Cm <- array(data = NA, dim = c(dim(array_obs_reflectance)[2:5],Nsimu),dimnames = list(c("Tree","Liana"),
+                                                                                                                                   c("PNM","FTS"),
+                                                                                                                                   seq(1,30),
+                                                                                                                                   seq(1:15),
+                                                                                                                                   seq(1:Nsimu)))
 
 for(iGF in 1:NGF){
   for (isite in 1:Nsite[iGF]){
@@ -304,18 +313,23 @@ for(iGF in 1:NGF){
 
         cN <- param_all[,"mean_N"] + (iGF - 1)*param_all[,"alpha_N"] + (isite - 1)*param_all[,paste0("beta_N[",iGF,"]")] +
           param_all[,paste0("gamma_N[",iGF,", ",isite,", ",ispecies,"]")] + param_all[,paste0("delta_N[",iGF,", ",isite,", ",ispecies,", ",iind,"]")]
+        all_N[iGF,isite,ispecies,iind,] <- cN
 
         cCab <- param_all[,"mean_Cab"] + (iGF - 1)*param_all[,"alpha_Cab"] + (isite - 1)*param_all[,paste0("beta_Cab[",iGF,"]")] +
           param_all[,paste0("gamma_Cab[",iGF,", ",isite,", ",ispecies,"]")] + param_all[,paste0("delta_Cab[",iGF,", ",isite,", ",ispecies,", ",iind,"]")]
+        all_Cab[iGF,isite,ispecies,iind,] <- cCab
 
         cCar <- param_all[,"mean_Car"] + (iGF - 1)*param_all[,"alpha_Car"] + (isite - 1)*param_all[,paste0("beta_Car[",iGF,"]")] +
           param_all[,paste0("gamma_Car[",iGF,", ",isite,", ",ispecies,"]")] + param_all[,paste0("delta_Car[",iGF,", ",isite,", ",ispecies,", ",iind,"]")]
+        all_Car[iGF,isite,ispecies,iind,] <- cCar
 
         cCw <- param_all[,"mean_Cw"] + (iGF - 1)*param_all[,"alpha_Cw"] + (isite - 1)*param_all[,paste0("beta_Cw[",iGF,"]")] +
           param_all[,paste0("gamma_Cw[",iGF,", ",isite,", ",ispecies,"]")] + param_all[,paste0("delta_Cw[",iGF,", ",isite,", ",ispecies,", ",iind,"]")]
+        all_Cw[iGF,isite,ispecies,iind,] <- cCw
 
         cCm <- param_all[,"mean_Cm"] + (iGF - 1)*param_all[,"alpha_Cm"] + (isite - 1)*param_all[,paste0("beta_Cm[",iGF,"]")] +
           param_all[,paste0("gamma_Cm[",iGF,", ",isite,", ",ispecies,"]")] + param_all[,paste0("delta_Cm[",iGF,", ",isite,", ",ispecies,", ",iind,"]")]
+        all_Cm[iGF,isite,ispecies,iind,] <- cCm
 
         tmp <- matrix(unlist(lapply(1:Nsimu,function(ileaf){
           rrtm::prospect5(N = cN[ileaf],
@@ -338,7 +352,88 @@ for(iGF in 1:NGF){
   }
 }
 
-Y <- as.vector(apply(array_obs_reflectance,c(1,2,3,4,5),mean)) ; X <- as.vector(apply(array_mod_reflectance,c(1,2,3,4,5),mean))
+all_parameters <- bind_rows(list(melt(all_N) %>% mutate(param = "N"),
+                             melt(all_Cab) %>% mutate(param = "Cab"),
+                             melt(all_Car) %>% mutate(param = "Car"),
+                             melt(all_Cw) %>% mutate(param = "Cw"),
+                             melt(all_Cm) %>% mutate(param = "Cm"))) %>% filter(!is.na(value)) %>% rename(GF = Var1,
+                                                                                                          site = Var2,
+                                                                                                          species = Var3,
+                                                                                                          Ind = Var4,
+                                                                                                          simu = Var5)
+
+ggplot(data = all_parameters) +
+  geom_density_ridges(aes(x = value,y = as.factor(site),fill = as.factor(GF)), alpha = 0.4) +
+  facet_wrap(~ param, scales = "free") +
+  theme_bw()
+
+
+dataSanchez <- readRDS(file = "./data/DATA_Sanchez_2009_Table2.RDS") %>%
+  filter(name %in% c("Cab","Car","Cm","Cw","N")) %>% rename(param = name) %>%
+  mutate(GF = factor(GF,levels = c("Tree","Liana")))
+
+N.ref <- all_parameters %>% filter(!(param == c("Standard.Dev"))) %>% ungroup() %>%
+  filter(param == "N",GF == "Tree",site == "PNM") %>% pull(value) %>% mean()
+
+param2plot <- all_parameters %>% filter(!(param == c("Standard.Dev"))) %>% ungroup() %>%
+  mutate(value = case_when(param == "N" ~ value/N.ref,
+                           TRUE ~ value))
+
+
+ggplot(data = param2plot) +
+  geom_density_ridges(aes(x = value, y = as.factor(site),fill = GF),alpha = 0.4, color = NA) +
+  geom_point(data = dataSanchez,
+             aes(x = m,y = as.factor(Site), color = GF), size = 2, alpha  = 0.4) +
+  facet_wrap(~ param,scale = "free") +
+  scale_fill_manual(values = c("darkgreen","darkblue")) +
+  scale_color_manual(values = c("darkgreen","darkblue")) +
+  labs(x = "",y = "") +
+  theme_bw() +
+  theme(legend.position = c(0.85,0.25),
+        text = element_text(20))
+
+
+merged.params <- param2plot %>% group_by(param,GF,site) %>% summarise(mod = mean(value,na.rm = TRUE),
+                                                                      .groups = "keep") %>%
+  left_join(dataSanchez %>% dplyr::select(Site,GF,param,m) %>% rename(site = Site,
+                                                                      obs = m),
+            by = c("site","GF","param"))
+
+ggplot(data = merged.params) +
+  geom_point(aes(x = mod, y = obs)) +
+  facet_wrap(~param, scales = "free") +
+  geom_abline(slope = 1, color = "red", linetype = 2) +
+  theme_bw()
+
+# Individual level
+Y <- as.vector(apply(array_obs_reflectance,c(1,2,3,4,5),mean))
+X <- as.vector(apply(array_mod_reflectance,c(1,2,3,4,5),mean))
 plot(X,Y)
 
-summary(lm(data.frame(x = X,y = Y),formula = y ~ x))
+abline(a = 0, b = 1, col ='red')
+LM <- lm(data.frame(x = X,y = Y),formula = y ~ x)
+
+summary(LM)
+anovobj<-aov(LM)
+allssq<-summary(anovobj)[[1]][,2]
+
+sqrt(c(crossprod(LM$residuals))/length(LM$residuals))
+
+# GF/site level
+Y <- as.vector(apply(array_obs_reflectance,c(1,2,3),mean,na.rm = TRUE))
+X <- as.vector(apply(array_mod_reflectance,c(1,2,3),mean,na.rm = TRUE))
+plot(X,Y)
+abline(a = 0, b = 1, col ='red')
+LM <- lm(data.frame(x = X,y = Y),formula = y ~ x)
+
+summary(LM)
+
+anovobj<-aov(LM)
+allssq<-summary(anovobj)[[1]][,2]
+
+sqrt(c(crossprod(LM$residuals))/length(LM$residuals))
+
+Y = as.vector(array_obs_reflectance[1,,,,,1])
+X = apply(all_N,c(1,2,3,4),mean)
+X1 = apply(all_Cab,c(1,2,3,4),mean)
+varpart(Y[!is.na(Y)],X[!is.na(X)],X1[!is.na(X1)])

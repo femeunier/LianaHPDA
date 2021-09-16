@@ -64,7 +64,7 @@ for (i in seq(1,nrow(metadata))){
     data.all[[metadata[["GF"]][i]]] [[metadata[["Species"]][i]]] [[metadata[["Ind"]][i]]] [["spectrum"]] <- df.single
     data.all[[metadata[["GF"]][i]]] [[metadata[["Species"]][i]]] [[metadata[["Ind"]][i]]] [["site"]] <- metadata[["site"]][i]
 
-    df.single_small <- df.single %>% filter(wv %in% seq(wv.min,wv.max,5))
+    df.single_small <- df.single %>% filter(wv %in% seq(wv.min,wv.max,1))
     df.data.all <- rbind(df.data.all,
                          df.single_small %>% mutate(GF = metadata[["GF"]][i],
                                                     Species = metadata[["Species"]][i],
@@ -74,7 +74,7 @@ for (i in seq(1,nrow(metadata))){
   }
 }
 
-# saveRDS(df.data.all,file = "./data/All.spectra.RDS")
+saveRDS(df.data.all,file = "./data/All.spectra.RDS")
 
 summary <- metadata %>% filter(data.exist) %>% ungroup() %>% group_by(GF,site) %>% summarise(Nspectra = sum(N),
                                                                                              Nspecies = length(unique(Species)),
