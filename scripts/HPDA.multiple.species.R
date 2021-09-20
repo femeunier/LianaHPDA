@@ -97,11 +97,11 @@ NIMprospect5 <- nimbleFunction(
 run_prospect5 <- nimbleCode({
 
 
-  sd_species_N ~ dunif(0.0,0.5)
-  sd_species_Cab ~ dunif(0.,30)
-  sd_species_Car ~ dunif(0.,10)
-  sd_species_Cw ~ dunif(0.,0.02)
-  sd_species_Cm ~ dunif(0.,0.02)
+  sd_species_N ~ dunif(0.0,1)
+  sd_species_Cab ~ dunif(0.,50)
+  sd_species_Car ~ dunif(0.,20)
+  sd_species_Cw ~ dunif(0.,0.04)
+  sd_species_Cm ~ dunif(0.,0.04)
 
   for (ispecies in seq(1,Nspecies)){
 
@@ -223,6 +223,8 @@ mcmc.out <- nimbleMCMC(code = P5model,
                        summary = TRUE,
                        WAIC = TRUE,
                        samplesAsCodaMCMC = TRUE)
+# system2("rsync",paste("-avz","hpc:/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/outputs/MCMC.multispecies.RDS","./outputs/"))
+# mcmc.out <- readRDS("./outputs/MCMC.multispecies.RDS")
 
 MCMCsamples <- mcmc.out$samples
 param <- MCMCsamples[,]
@@ -231,11 +233,12 @@ Nsimu <- min(1000,nrow(MCMCsamples[[1]]))
 pos.simu <- sample(1:nrow(MCMCsamples[[1]]),Nsimu)
 param_all <- do.call(rbind,lapply(1:Nchains,function(i) MCMCsamples[[i]][pos.simu,]))[sample(1:(Nchains*Nsimu),Nsimu),]
 
-plot(param[,c("Nmean","Cabmean","Cwmean","Cmmean")])
-plot(param[,"nu_species_Cab[2]"])
+plot(param[,c("Nmean","Cabmean","Carmean","Cwmean","Cmmean")])
+plot(param[,"nu_species_Cab[3]"])
+plot(param[,"nu_leaf_N[2, 2]"])
 
-hist(as.vector(as.matrix(param[,which(grepl("nu_species_N",colnames(param$chain1)))])))
-hist(as.vector(as.matrix(param[,which(grepl("nu_leaf_Cab",colnames(param$chain1)))])))
+hist(as.vector(as.matrix(param[,which(grepl("nu_species_N.4",colnames(param$chain1)))])))
+hist(as.vector(as.matrix(param[,which(grepl("nu_leaf_N",colnames(param$chain1)))])))
 
 
 array_mod_reflectance <- array(data = NA,c(dim(data.minus1d),Nsimu))
@@ -243,6 +246,7 @@ array_mod_reflectance <- array(data = NA,c(dim(data.minus1d),Nsimu))
 all_N <- all_Cab <- all_Car <- all_Cw <- all_Cm <-
   array(data = NA, c(Nspecies,max(Nleaves),Nsimu))
 
+RMSE <- array(data = NA, dim = c(Nspecies,max(Nleaves)))
 
 for (ispecies in seq(1,Nspecies)){
 
@@ -273,11 +277,20 @@ for (ispecies in seq(1,Nspecies)){
 
     array_mod_reflectance[,ispecies,ileaf,] <- tmp
 
+    X <- apply(tmp,c(1),mean)
+    Y <- Data$obs_reflectance[,ispecies,ileaf]
+    LM <- lm(data.frame(x = X,y = Y),formula = y ~ x)
+
+    RMSE[ispecies,ileaf] <- sqrt(c(crossprod(LM$residuals))/length(LM$residuals))
+
+
+    # ispecies = 2; ileaf = 8
     # matplot(WLs,array_mod_reflectance[,ispecies,ileaf,],type = 'l')
     # lines(WLs,data.minus1d[,ispecies,ileaf], col = "red",lwd = 2)
 
   }
 }
+
 
 all_parameters <- bind_rows(list(melt(all_N) %>% mutate(param = "N"),
                                  melt(all_Cab) %>% mutate(param = "Cab"),
@@ -292,8 +305,15 @@ ggplot(data = all_parameters) +
   facet_wrap(~ param, scales = "free") +
   theme_bw()
 
-X <- as.vector(apply(array_mod_reflectance,c(1,2,3),mean,na.rm = TRUE))
-Y <- as.vector(data.minus1d)
+
+plot(as.vector(Data$obs_reflectance[,2,]),as.vector(apply(array_mod_reflectance[,2,,],c(1,2),mean)))
+abline(a = 0, b = 1, col ='red')
+
+matplot(WLs,matrix(Data$obs_reflectance[,2,],nrow = Nwl),type = 'l', col = "black")
+matlines(WLs,matrix(apply(array_mod_reflectance[,2,,],c(1,2),mean),nrow = Nwl), col = "red")
+
+X <- as.vector(apply(array_mod_reflectance[,,,],c(1,2,3),mean,na.rm = TRUE))
+Y <- as.vector(Data$obs_reflectance[,,])
 plot(X,Y)
 
 abline(a = 0, b = 1, col ='red')
@@ -301,6 +321,13 @@ LM <- lm(data.frame(x = X,y = Y),formula = y ~ x)
 
 summary(LM)
 sqrt(c(crossprod(LM$residuals))/length(LM$residuals))
+
+par(mfrow = c(1,2))
+matplot(WLs,data.2d.NA,type = 'l',col = "black")
+matlines(WLs,Data$obs_reflectance[,4,],type = 'l',col = "red")
+
+matplot(WLs,matrix(apply(array_mod_reflectance,c(1,2,3),mean),nrow = Nwl),type = 'l',col = "black")
+matlines(WLs,apply(array_mod_reflectance[,4,,],c(1,2),mean,na.rm = TRUE),type = 'l',col = "red")
 
 par(mfrow = c(1,2))
 matplot(WLs,data.2d.NA,type = 'l')
