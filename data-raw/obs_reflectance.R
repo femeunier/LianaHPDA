@@ -5,7 +5,7 @@ library(dplyr)
 library(purrr)
 library(tidyr)
 
-data.spectra <- readRDS("./data/All.spectra.RDS") %>%
+data.spectra <- readRDS("./data/All.spectra_corrected.RDS") %>%
   group_by(GF,site,Species) %>% mutate(species.id = cur_group_id()) %>% group_by(GF,site) %>% mutate(species.id = species.id - min(species.id) + 1) %>%
   group_by(GF,site,species.id,Ind) %>% mutate(ind.id = cur_group_id()) %>% group_by(GF,site,species.id) %>% mutate(ind.id = ind.id - min(ind.id) + 1) %>%
   group_by(GF,site,species.id,ind.id,name) %>% mutate(leaf.id = cur_group_id()) %>% group_by(GF,site,species.id,ind.id) %>% mutate(leaf.id = leaf.id - min(leaf.id) + 1)
@@ -38,9 +38,9 @@ for (iGF in seq(1,length(GFs))){
       for (iind in seq(1, Nind[iGF,isite,ispecies])){
         cccdata <- ccdata %>% filter(ind.id == iind)
 
-        array_obs_reflectance[,iGF,isite,ispecies,iind,1] <- cccdata %>% filter(name == 1) %>% arrange(wv) %>% pull(value)
-        array_obs_reflectance[,iGF,isite,ispecies,iind,2] <- cccdata %>% filter(name == 2) %>% arrange(wv) %>% pull(value)
-        array_obs_reflectance[,iGF,isite,ispecies,iind,3] <- cccdata %>% filter(name == 3) %>% arrange(wv) %>% pull(value)
+        array_obs_reflectance[,iGF,isite,ispecies,iind,1] <- cccdata %>% filter(name == 1) %>% arrange(wv) %>% pull(value.corrected)
+        array_obs_reflectance[,iGF,isite,ispecies,iind,2] <- cccdata %>% filter(name == 2) %>% arrange(wv) %>% pull(value.corrected)
+        array_obs_reflectance[,iGF,isite,ispecies,iind,3] <- cccdata %>% filter(name == 3) %>% arrange(wv) %>% pull(value.corrected)
       }
     }
   }

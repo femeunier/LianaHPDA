@@ -97,11 +97,11 @@ NIMprospect5 <- nimbleFunction(
 run_prospect5 <- nimbleCode({
 
 
-  sd_species_N ~ dunif(0.0,1)
-  sd_species_Cab ~ dunif(0.,50)
-  sd_species_Car ~ dunif(0.,20)
-  sd_species_Cw ~ dunif(0.,0.04)
-  sd_species_Cm ~ dunif(0.,0.04)
+  sd_species_N ~ dunif(0.,3)
+  sd_species_Cab ~ dunif(0.,200)
+  sd_species_Car ~ dunif(0.,50)
+  sd_species_Cw ~ dunif(0.,0.05)
+  sd_species_Cm ~ dunif(0.,0.05)
 
   for (ispecies in seq(1,Nspecies)){
 
@@ -145,8 +145,8 @@ run_prospect5 <- nimbleCode({
   Standard.Dev ~ dunif(0,1)
 
   Nmean ~ dunif(1.1,5)
-  Cabmean ~ dunif(0,100)
-  Carmean ~ dunif(0,50)
+  Cabmean ~ dunif(0,250)
+  Carmean ~ dunif(0,100)
   Cwmean ~ dunif(0.,0.1)
   Cmmean ~ dunif(0.,0.1)
 
@@ -157,7 +157,7 @@ WLb <- 2500
 Delta_WL <- 20
 
 WLs <- seq(WLa,WLb,Delta_WL)
-WLs <- WLs[WLs < 680 | WLs > 800]
+WLs <- WLs[(WLs < 650 | WLs > 800) & (WLs > 450)]
 pos <- which((WLa:WLb %in% WLs))
 Nwl <- length(pos)
 
@@ -168,7 +168,6 @@ dims <- dim(data.mean)
 data.minus1d <- array(data = data.mean, dim = c(dims[1:(length(dims)-2)],dims[length(dims)-1]*dims[length(dims)]))
 
 data.2d.NA <- matrix(data.mean,nrow = Nwl)
-
 
 par(mfrow = c(1,1))
 matplot(WLs,data.2d.NA,type = 'l')
@@ -234,32 +233,53 @@ pos.simu <- sample(1:nrow(MCMCsamples[[1]]),Nsimu)
 param_all <- do.call(rbind,lapply(1:Nchains,function(i) MCMCsamples[[i]][pos.simu,]))[sample(1:(Nchains*Nsimu),Nsimu),]
 
 plot(param[,c("Nmean","Cabmean","Carmean","Cwmean","Cmmean")])
-plot(param[,"nu_species_Cab[3]"])
+plot(param[,"nu_species_N[4]"])
 plot(param[,"nu_leaf_N[2, 2]"])
 
-hist(as.vector(as.matrix(param[,which(grepl("nu_species_N.4",colnames(param$chain1)))])))
+hist(as.vector(as.matrix(param[,c("Nmean")])))
+hist(as.vector(as.matrix(param[,which(grepl("nu_species_N",colnames(param$chain1)))])))
 hist(as.vector(as.matrix(param[,which(grepl("nu_leaf_N",colnames(param$chain1)))])))
 
+hist(as.vector(as.matrix(param[,c("Nmean")])))
 
 array_mod_reflectance <- array(data = NA,c(dim(data.minus1d),Nsimu))
 
 all_N <- all_Cab <- all_Car <- all_Cw <- all_Cm <-
   array(data = NA, c(Nspecies,max(Nleaves),Nsimu))
 
+species_effect_N <- species_effect_Cab <- species_effect_Car <-
+  species_effect_Cw <- species_effect_Cm <-
+  array(data = NA, dim = c(Nspecies,Nsimu))
+
+leaf_effect_N <- leaf_effect_Cab <- leaf_effect_Car <-
+  leaf_effect_Cm <- leaf_effect_Cw <- array(data = NA, dim = c(Nspecies,max(Nleaves),Nsimu))
+
 RMSE <- array(data = NA, dim = c(Nspecies,max(Nleaves)))
+
 
 for (ispecies in seq(1,Nspecies)){
 
   print(ispecies)
 
+  species_effect_N[ispecies,] <- param_all[,paste0("nu_species_N[",ispecies,"]")]
+  species_effect_Cab[ispecies,] <- param_all[,paste0("nu_species_Cab[",ispecies,"]")]
+  species_effect_Car[ispecies,] <- param_all[,paste0("nu_species_Car[",ispecies,"]")]
+  species_effect_Cw[ispecies,] <- param_all[,paste0("nu_species_Cw[",ispecies,"]")]
+  species_effect_Cm[ispecies,] <- param_all[,paste0("nu_species_Cm[",ispecies,"]")]
+
   for (ileaf in seq(1,Nleaves[ispecies])){
 
+    leaf_effect_N[ispecies,ileaf,] <- param_all[,paste0("nu_leaf_N[",ispecies,", ",ileaf,"]")]
+    leaf_effect_Cab[ispecies,ileaf,] <- param_all[,paste0("nu_leaf_Cab[",ispecies,", ",ileaf,"]")]
+    leaf_effect_Car[ispecies,ileaf,] <- param_all[,paste0("nu_leaf_Car[",ispecies,", ",ileaf,"]")]
+    leaf_effect_Cm[ispecies,ileaf,] <- param_all[,paste0("nu_leaf_Cm[",ispecies,", ",ileaf,"]")]
+    leaf_effect_Cw[ispecies,ileaf,] <- param_all[,paste0("nu_leaf_Cw[",ispecies,", ",ileaf,"]")]
 
-    cN <- param_all[,"Nmean"] + param_all[,paste0("nu_species_N[",ispecies,"]")] + param_all[,paste0("nu_leaf_N[",ispecies,", ",ileaf,"]")]
-    cCab <- param_all[,"Cabmean"] + param_all[,paste0("nu_species_Cab[",ispecies,"]")] + param_all[,paste0("nu_leaf_Cab[",ispecies,", ",ileaf,"]")]
-    cCar <- param_all[,"Carmean"] + param_all[,paste0("nu_species_Car[",ispecies,"]")] + param_all[,paste0("nu_leaf_Car[",ispecies,", ",ileaf,"]")]
-    cCw <- param_all[,"Cwmean"] + param_all[,paste0("nu_species_Cw[",ispecies,"]")] + param_all[,paste0("nu_leaf_Cw[",ispecies,", ",ileaf,"]")]
-    cCm <- param_all[,"Cmmean"] + param_all[,paste0("nu_species_Cm[",ispecies,"]")] + param_all[,paste0("nu_leaf_Cm[",ispecies,", ",ileaf,"]")]
+    cN <- param_all[,"Nmean"] + species_effect_N[ispecies,] + leaf_effect_N[ispecies,ileaf,]
+    cCab <- param_all[,"Cabmean"] + species_effect_Cab[ispecies,] + leaf_effect_Cab[ispecies,ileaf,]
+    cCar <- param_all[,"Carmean"] + species_effect_Car[ispecies,] + leaf_effect_Car[ispecies,ileaf,]
+    cCw <- param_all[,"Cwmean"] + species_effect_Cw[ispecies,] + leaf_effect_Cw[ispecies,ileaf,]
+    cCm <- param_all[,"Cmmean"] + species_effect_Cm[ispecies,] + leaf_effect_Cm[ispecies,ileaf,]
 
     all_N[ispecies,ileaf,] <- cN
     all_Cab[ispecies,ileaf,] <- cCab
@@ -292,7 +312,7 @@ for (ispecies in seq(1,Nspecies)){
 }
 
 
-all_parameters <- bind_rows(list(melt(all_N) %>% mutate(param = "N"),
+all_parameters <- bind_rows(list(melt(species_effect_N) %>% mutate(param = "N"),
                                  melt(all_Cab) %>% mutate(param = "Cab"),
                                  melt(all_Car) %>% mutate(param = "Car"),
                                  melt(all_Cw) %>% mutate(param = "Cw"),
@@ -306,11 +326,51 @@ ggplot(data = all_parameters) +
   theme_bw()
 
 
+
+Mean_effects <- bind_rows(list(data.frame(param = "N",value = as.vector(as.matrix(param[,"Nmean"]))),
+                               data.frame(param = "Cab",value = as.vector(as.matrix(param[,"Cabmean"]))),
+                               data.frame(param = "Car",value = as.vector(as.matrix(param[,"Carmean"]))),
+                               data.frame(param = "Cw",value = as.vector(as.matrix(param[,"Cwmean"]))),
+                               data.frame(param = "Cm",value = as.vector(as.matrix(param[,"Cmmean"])))))
+
+ggplot(data = Mean_effects) +
+  geom_density(aes(x = value, fill = as.factor(param)), alpha = 0.4) +
+  facet_wrap(~ param, scales = "free") +
+  theme_bw()
+
+
+all_species_effects <- bind_rows(list(melt(species_effect_N) %>% mutate(param = "N"),
+                                      melt(species_effect_Cab) %>% mutate(param = "Cab"),
+                                      melt(species_effect_Car) %>% mutate(param = "Car"),
+                                      melt(species_effect_Cm) %>% mutate(param = "Cm"),
+                                      melt(species_effect_Cw) %>% mutate(param = "Cw"))) %>% filter(!is.na(value)) %>% rename(species = Var1,
+                                                                                                                              simu = Var2)
+
+ggplot(data = all_species_effects) +
+  geom_density(aes(x = value, fill = as.factor(species)), alpha = 0.4) +
+  facet_wrap(~ param, scales = "free") +
+  theme_bw()
+
+all_leaves_effects <- bind_rows(list(melt(leaf_effect_N) %>% mutate(param = "N"),
+                                     melt(leaf_effect_Cab) %>% mutate(param = "Cab"),
+                                     melt(leaf_effect_Car) %>% mutate(param = "Car"),
+                                     melt(leaf_effect_Cm) %>% mutate(param = "Cm"),
+                                     melt(leaf_effect_Cw) %>% mutate(param = "Cw"))) %>% filter(!is.na(value)) %>% rename(species = Var1,
+                                                                                                                          leaf = Var2,
+                                                                                                                          simu = Var3)
+
+ggplot(data = all_leaves_effects) +
+  geom_density(aes(x = value, fill = as.factor(leaf)), alpha = 0.4) +
+  facet_wrap(param ~ species, scales = "free",ncol = 4) +
+  geom_vline(xintercept = 0) +
+  theme_bw()
+
+
 plot(as.vector(Data$obs_reflectance[,2,]),as.vector(apply(array_mod_reflectance[,2,,],c(1,2),mean)))
 abline(a = 0, b = 1, col ='red')
 
-matplot(WLs,matrix(Data$obs_reflectance[,2,],nrow = Nwl),type = 'l', col = "black")
-matlines(WLs,matrix(apply(array_mod_reflectance[,2,,],c(1,2),mean),nrow = Nwl), col = "red")
+matplot(WLs,matrix(Data$obs_reflectance[,3,],nrow = Nwl),type = 'l', col = "black")
+matlines(WLs,matrix(apply(array_mod_reflectance[,3,,],c(1,2),mean),nrow = Nwl), col = "red")
 
 X <- as.vector(apply(array_mod_reflectance[,,,],c(1,2,3),mean,na.rm = TRUE))
 Y <- as.vector(Data$obs_reflectance[,,])
@@ -324,10 +384,10 @@ sqrt(c(crossprod(LM$residuals))/length(LM$residuals))
 
 par(mfrow = c(1,2))
 matplot(WLs,data.2d.NA,type = 'l',col = "black")
-matlines(WLs,Data$obs_reflectance[,4,],type = 'l',col = "red")
+matlines(WLs,Data$obs_reflectance[,3,],type = 'l',col = "red")
 
 matplot(WLs,matrix(apply(array_mod_reflectance,c(1,2,3),mean),nrow = Nwl),type = 'l',col = "black")
-matlines(WLs,apply(array_mod_reflectance[,4,,],c(1,2),mean,na.rm = TRUE),type = 'l',col = "red")
+matlines(WLs,apply(array_mod_reflectance[,3,,],c(1,2),mean,na.rm = TRUE),type = 'l',col = "red")
 
 par(mfrow = c(1,2))
 matplot(WLs,data.2d.NA,type = 'l')
@@ -337,20 +397,22 @@ df.merged <- bind_rows(list(melt(Data$obs_reflectance) %>% mutate(type = 'obs'),
                             melt(apply(array_mod_reflectance,c(1,2,3),mean,na.rm = TRUE)) %>% mutate(type = 'mod'))) %>%
   pivot_wider(names_from = "type",
               values_from = "value")
+
 ggplot(data = df.merged,
-       aes(x = mod,y = obs,group = Var1)) +
-  geom_point() +
-  stat_smooth(se = FALSE,method = "lm") +
+       aes(x = mod,y = obs,group = Var1, color = Var1)) +
+  geom_point(alpha = 0.4, size = 0.1) +
+  stat_smooth(se = FALSE,method = "lm", size = 0.1) +
   theme_bw()
 
 par(mfrow=c(1,1))
 df.r2 <- df.merged %>% group_by(Var1) %>% summarise(r2 = summary(lm(formula = obs ~ mod))[["r.squared"]])
 plot(WLs,df.r2$r2)
+abline(h = c(0.5,0.8,0.9), col = 'red')
 
 
 ggplot(data = df.merged %>% filter(Var1 %in% (df.r2 %>% filter(r2 < 0.8) %>% pull(Var1))),
-       aes(x = mod,y = obs,group = Var1)) +
+       aes(x = mod,y = obs,group = Var1, color = as.factor(Var1))) +
   geom_point() +
   stat_smooth(se = FALSE,method = "lm") +
   theme_bw()
-
+print(WLs[df.r2 %>% filter(r2 < 0.8) %>% pull(Var1)])
