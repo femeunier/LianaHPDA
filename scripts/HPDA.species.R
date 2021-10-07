@@ -96,7 +96,6 @@ NIMprospect5 <- nimbleFunction(
 
 run_prospect5 <- nimbleCode({
 
-
   for (ileaf in seq(1,Nleaves)){
 
     nu_leaf_N[ileaf] ~ dnorm(0, sd = sd_leaf_N)
@@ -106,11 +105,11 @@ run_prospect5 <- nimbleCode({
     nu_leaf_Cm[ileaf] ~ dnorm(0, sd = sd_leaf_Cm)
 
     reflectance[1:Nwl,ileaf] <- NIMprospect5(Nmean + nu_leaf_N[ileaf],
-                                       Cabmean + nu_leaf_Cab[ileaf],
-                                       Carmean + nu_leaf_Car[ileaf],
-                                       Cwmean + nu_leaf_Cw[ileaf],
-                                       Cmmean + nu_leaf_Cm[ileaf],
-                                       dataspec_p5[,], talf[],t12[],t21[], Nwl)
+                                             Cabmean + nu_leaf_Cab[ileaf],
+                                             Carmean + nu_leaf_Car[ileaf],
+                                             Cwmean + nu_leaf_Cw[ileaf],
+                                             Cmmean + nu_leaf_Cm[ileaf],
+                                             dataspec_p5[,], talf[],t12[],t21[], Nwl)
 
     for (j in 1:Nwl){
       obs_reflectance[j,ileaf] ~ dnorm(reflectance[j,ileaf], sd = max(0,Standard.Dev))
@@ -138,13 +137,13 @@ WLb <- 2500
 Delta_WL <- 20
 
 WLs <- seq(WLa,WLb,Delta_WL)
-WLs <- WLs[WLs < 680 | WLs > 800]
+WLs <- WLs[(WLs > 450 & WLs < 680) | WLs > 800]
 pos <- which((WLa:WLb %in% WLs))
 Nwl <- length(pos)
 
 data.raw <- LianaHPDA::array_obs_reflectance[pos,,,,,]
 
-data.mean <- data.raw[,1,1,1,,1]
+data.mean <- data.raw[,1,1,1,,]
 dims <- dim(data.mean)
 data.2d <- matrix(data = data.mean,nrow = dims[1])
 data.2d.NA <- data.2d[,!is.na(data.2d[1,])]
@@ -193,10 +192,10 @@ mcmc.out <- nimbleMCMC(code = P5model,
                                     "sd_leaf_N","sd_leaf_Cab","sd_leaf_Car","sd_leaf_Cw","sd_leaf_Cm"),
                        data = Data,
                        inits = Inits,
-                       nburnin = 20000,
+                       nburnin = 50000,
                        nchains = Nchains,
-                       niter = 40000,
-                       thin = 10,
+                       niter = 100000,
+                       thin = 50,
                        summary = TRUE,
                        WAIC = TRUE,
                        samplesAsCodaMCMC = TRUE)
@@ -208,11 +207,11 @@ Nsimu <- min(1000,nrow(MCMCsamples))
 pos.simu <- sample(1:nrow(MCMCsamples[[1]]),Nsimu)
 param_all <- do.call(rbind,lapply(1:Nchains,function(i) MCMCsamples[[i]][pos.simu,]))[sample(1:(Nchains*Nsimu),Nsimu),]
 
+param.names <- colnames(param_all)
 plot(param[,c("Nmean","Cabmean","Cwmean","Cmmean")])
-plot(param[,"nu_leaf_Cab[2]"])
+plot(param[,"nu_leaf_Cab[1]"])
 
 hist(as.vector(as.matrix(param[,which(grepl("nu_leaf_Cab",colnames(param$chain1)))[1:10]])))
-
 
 array_mod_reflectance <- array(data = NA,c(dim(data.2d.NA),Nsimu))
 

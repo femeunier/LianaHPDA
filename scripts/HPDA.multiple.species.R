@@ -97,9 +97,9 @@ NIMprospect5 <- nimbleFunction(
 run_prospect5 <- nimbleCode({
 
 
-  sd_species_N ~ dunif(0.,3)
-  sd_species_Cab ~ dunif(0.,200)
-  sd_species_Car ~ dunif(0.,50)
+  sd_species_N ~ dunif(0.,1)
+  sd_species_Cab ~ dunif(0.,50)
+  sd_species_Car ~ dunif(0.,20)
   sd_species_Cw ~ dunif(0.,0.05)
   sd_species_Cm ~ dunif(0.,0.05)
 
@@ -157,13 +157,13 @@ WLb <- 2500
 Delta_WL <- 20
 
 WLs <- seq(WLa,WLb,Delta_WL)
-WLs <- WLs[(WLs < 650 | WLs > 800) & (WLs > 450)]
+# WLs <- WLs[(WLs < 650 | WLs > 800) & (WLs > 450)]
 pos <- which((WLa:WLb %in% WLs))
 Nwl <- length(pos)
 
 data.raw <- LianaHPDA::array_obs_reflectance[pos,,,,,]
 
-data.mean <- data.raw[,1,1,1:4,1:4,1:3]
+data.mean <- data.raw[,2,1,3:6,1:4,1:3]
 dims <- dim(data.mean)
 data.minus1d <- array(data = data.mean, dim = c(dims[1:(length(dims)-2)],dims[length(dims)-1]*dims[length(dims)]))
 
@@ -222,8 +222,8 @@ mcmc.out <- nimbleMCMC(code = P5model,
                        summary = TRUE,
                        WAIC = TRUE,
                        samplesAsCodaMCMC = TRUE)
-# system2("rsync",paste("-avz","hpc:/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/outputs/MCMC.multispecies.RDS","./outputs/"))
-# mcmc.out <- readRDS("./outputs/MCMC.multispecies.RDS")
+# system2("rsync",paste("-avz","hpc:/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/outputs/MCMC.multiplespecies.RDS","./outputs/"))
+# mcmc.out <- readRDS("./outputs/MCMC.multiplespecies.RDS")
 
 MCMCsamples <- mcmc.out$samples
 param <- MCMCsamples[,]
@@ -312,7 +312,7 @@ for (ispecies in seq(1,Nspecies)){
 }
 
 
-all_parameters <- bind_rows(list(melt(species_effect_N) %>% mutate(param = "N"),
+all_parameters <- bind_rows(list(melt(all_N) %>% mutate(param = "N"),
                                  melt(all_Cab) %>% mutate(param = "Cab"),
                                  melt(all_Car) %>% mutate(param = "Car"),
                                  melt(all_Cw) %>% mutate(param = "Cw"),
