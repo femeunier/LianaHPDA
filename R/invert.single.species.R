@@ -142,6 +142,9 @@ invert.single.species <- function(id,param.MCMC,param.simu,OP.folder){
 
   })
 
+  assign('e1_approx', e1_approx, envir = .GlobalEnv)
+  assign('NIMprospect5', NIMprospect5, envir = .GlobalEnv)
+
 
 
   WLs <- seq(WLa,WLb,Delta_WL)
