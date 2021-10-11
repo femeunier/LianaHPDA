@@ -77,9 +77,9 @@ for (ijob in seq(1,Njobs)){
 
   launcher_file <- file.path(cfolder,'launcher.sh')
   writeLines("#!/bin/bash",con = launcher_file)
-  write("ml R/3.4.4-intel-2018a-X11-20180131",file=launcher_file,append=TRUE)
+  write("ml purge",file=launcher_file,append=TRUE)
+  write("ml R/3.5.1-intel-2018b",file=launcher_file,append=TRUE)
   write(paste("mpirun",file.path(main.dir,"modellauncher","modellauncher"),job_list_file),file=launcher_file,append=TRUE)
-
 }
 
 # Submitting files
