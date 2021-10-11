@@ -1,0 +1,17 @@
+echo "source('script.R')"| R --save
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.6
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.7
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.8
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.9
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA
+NA

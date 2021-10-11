@@ -1,0 +1,17 @@
+echo "source('script.R')"| R --save
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.16
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.17
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.18
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.19
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.20
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.21
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.22
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.23
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.24
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.25
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.PNM.26
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.1
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.2
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.3
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.4
+/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA/run/Tree.FTS.5
