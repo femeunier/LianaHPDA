@@ -1,4 +1,0 @@
-echo "source('script.R')"| R --save
-/home/femeunier/Documents/projects/LianaHPDA/run/Tree.FTS.3
-/home/femeunier/Documents/projects/LianaHPDA/run/Tree.FTS.4
-/home/femeunier/Documents/projects/LianaHPDA/run/Tree.FTS.5
