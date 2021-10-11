@@ -1,0 +1,4 @@
+echo "source('script.R')"| R --save
+/home/femeunier/Documents/projects/LianaHPDA/run/Tree.PNM.5
+/home/femeunier/Documents/projects/LianaHPDA/run/Tree.PNM.6
+/home/femeunier/Documents/projects/LianaHPDA/run/Tree.PNM.7

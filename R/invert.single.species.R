@@ -146,7 +146,6 @@ invert.single.species <- function(id,param.MCMC,param.simu,OP.folder){
   assign('NIMprospect5', NIMprospect5, envir = .GlobalEnv)
 
 
-
   WLs <- seq(WLa,WLb,Delta_WL)
   WLs <- WLs[(WLs > WL.min & WLs < WL.trans.min) | WLs > WL.trans.max ]
   pos <- which((WLa:WLb %in% WLs))
@@ -159,7 +158,7 @@ invert.single.species <- function(id,param.MCMC,param.simu,OP.folder){
   data.2d <- matrix(data = data.mean,nrow = dims[1])
   data.2d.NA <- data.2d[,!is.na(data.2d[1,])]
 
-  matplot(WLs,data.2d.NA,type = 'l')
+  # matplot(WLs,data.2d.NA,type = 'l')
 
   Data <- list(obs_reflectance = data.2d.NA)
 

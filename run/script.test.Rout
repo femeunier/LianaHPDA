@@ -1,0 +1,89 @@
+
+R version 3.6.3 (2020-02-29) -- "Holding the Windsock"
+Copyright (C) 2020 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> rm(list=ls())
+> 
+> library(nimble)
+nimble version 0.11.1 is loaded.
+For more information on NIMBLE and a User Manual,
+please visit http://R-nimble.org.
+
+Attaching package: ‘nimble’
+
+The following object is masked from ‘package:stats’:
+
+    simulate
+
+> library(coda)
+> library(dplyr)
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+> library(tidyr)
+> library(LianaHPDA)
+> library(reshape2)
+
+Attaching package: ‘reshape2’
+
+The following object is masked from ‘package:tidyr’:
+
+    smiths
+
+> 
+> param.simu <- list(WLa = 400,WLb = 2500, Delta_WL = 20, WL.min = 450, WL.trans.min = 680, WL.trans.max = 800)
+> 
+> id <- list(iGF = 2,isite = 2, ispecies = 3)
+> 
+> param.MCMC <- list(Nchains = 2,nburnin = 100, niter = 200, thin = 1)
+> 
+> invert.single.species(id,param.MCMC,param.simu,'./outputs/')
+defining model...
+Adding talf, t12, t21, dataspec_p5 as data for building model.
+building model...
+setting data and initial values...
+running calculate on model (any error reports that follow may simply reflect missing values in model variables) ... Error in Tsub[gt1] <- tgt1/(tgt1 + (1 - tgt1) * (N - 1)) : 
+  NAs are not allowed in subscripted assignments
+
+checking model sizes and dimensions... This model is not fully initialized. This is not an error. To see which variables are not initialized, use model$initializeInfo(). For more information on model initialization, see help(modelInitialization).
+model building finished.
+Missing values (NAs) or non-finite values were found in model variables: nu_leaf_N, nu_leaf_Cab, nu_leaf_Car, nu_leaf_Cw, nu_leaf_Cm, reflectance, sd_leaf_N, sd_leaf_Cab, sd_leaf_Car, sd_leaf_Cw, sd_leaf_Cm. This is not an error, but some or all variables may need to be initialized for certain algorithms to operate properly. For more information on model initialization, see help(modelInitialization).
+Monitored nodes are valid for WAIC.
+compiling... this may take a minute. Use 'showCompilerOutput = TRUE' to see C++ compilation details.
+compilation finished.
+running chain 1...
+|-------------|-------------|-------------|-------------|
+|-------------------------------------------------------|
+running chain 2...
+|-------------|-------------|-------------|-------------|
+|-------------------------------------------------------|
+Error in gzfile(file, mode) : cannot open the connection
+Calls: invert.single.species -> saveRDS -> gzfile
+In addition: Warning messages:
+1: For this nimbleFunction to compile, these objects must be defined as nimbleFunctions, nimbleFunctionLists, or nimbleLists before compilation: e1_approx. 
+2: In gzfile(file, mode) :
+  cannot open compressed file './outputs//MCMC.single.species.GF2.site2.species2.RDS', probable reason 'No such file or directory'
+Execution halted
