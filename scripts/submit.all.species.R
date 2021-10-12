@@ -34,7 +34,11 @@ if (!dir.exists(main.dir.out)) dir.create(main.dir.out)
 data.raw <- LianaHPDA::array_obs_reflectance
 
 # Submission parameters
-args <- c('-l walltime=12:00:00','-l nodes=1:ppn=16')
+args <- c('-l walltime=12:00:00',
+          '-l nodes=1:ppn=16',
+          '-o log/BCI.o$PBS_JOBID',
+          '-e log/BCI.e$PBS_JOBID')
+
 run_per_nodes <- 16
 folders.all <- c()
 

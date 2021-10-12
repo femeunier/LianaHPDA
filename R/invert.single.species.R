@@ -129,8 +129,8 @@ invert.single.species <- function(id,param.MCMC,param.simu,OP.folder){
     Standard.Dev ~ dunif(0,1)
 
     Nmean ~ dunif(1.1,5)
-    Cabmean ~ dunif(0,100)
-    Carmean ~ dunif(0,50)
+    Cabmean ~ dunif(0,200)
+    Carmean ~ dunif(0,100)
     Cwmean ~ dunif(0.,0.1)
     Cmmean ~ dunif(0.,0.1)
 
