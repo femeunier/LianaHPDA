@@ -21,8 +21,8 @@ param.MCMC <- list(Nchains = 2,
                    niter = 1000000,
                    thin = 500)
 
-GFs <- c("Liana","Tree")
-sites <- c("PNM","FTS")
+GFs <- c('Tree','Liana')
+sites <- c('PNM','FTS')
 
 main.dir <- "/data/gent/vo/000/gvo00074/felicien/R/LianaHPDA"
 main.dir.run <- file.path(main.dir,"run")
