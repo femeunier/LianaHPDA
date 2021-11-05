@@ -58,7 +58,7 @@ for (iGF in seq(1,2)){
         if (!dir.exists(dir.run)) dir.create(dir.run)
         if (!dir.exists(dir.out)) dir.create(dir.out)
 
-        create_Rscript_PROSPECT5(file.path(dir.run,"script.R"),id,param.MCMC,param.simu,dir.out)
+        create_Rscript_PROSPECT5(file.path(dir.run,"script.R"),id,param.MCMC,param.simu,dir.out, basename = "Rcorrected"
         folders.all <- c(folders.all,dir.run)
 
       }

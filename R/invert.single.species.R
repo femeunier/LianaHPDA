@@ -1,4 +1,4 @@
-invert.single.species <- function(id,param.MCMC,param.simu,OP.folder){
+invert.single.species <- function(id,param.MCMC,param.simu,OP.folder,basename){
 
   ###########################################################
   iGF <- id[["iGF"]]
@@ -213,7 +213,7 @@ invert.single.species <- function(id,param.MCMC,param.simu,OP.folder){
   MCMCsamples <- mcmc.out$samples
   param <- MCMCsamples[,]
 
-  file.name <- paste("MCMC.single.species",paste0("GF",iGF),paste0("site",isite),paste0("species",ispecies),"RDS", sep = ".")
+  file.name <- paste(basename,paste0("GF",iGF),paste0("site",isite),paste0("species",ispecies),"RDS", sep = ".")
   saveRDS(param,file.path(OP.folder,file.name))
 
 }

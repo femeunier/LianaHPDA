@@ -12,13 +12,15 @@ WLa <- 400
 WLb <- 2500
 Delta_WL <- 20
 
+all.WLs <- WLa:WLb
+
 WLs <- seq(WLa,WLb,Delta_WL)
 WLs <- WLs[(WLs > 450 & WLs < 680) | WLs > 800]
 pos <- which((WLa:WLb %in% WLs))
 Nwl <- length(pos)
 
-GFs <- c("Liana","Tree")
-sites <- c("PNM","FTS")
+GFs <- c('Tree','Liana')
+sites <- c('PNM','FTS')
 
 df.RMSE <- df.params <- data.frame()
 leaf.count <- 0
@@ -55,12 +57,14 @@ for (iGF in seq(1,2)){
 
           array_mod_reflectance <- array(data = NA,c(dim(data.2d.NA),Nsimu))
 
-          all_N <- all_Cab <- all_Car <- all_Cw <- all_Cm <- array(data = NA, c(Nleaves,Nsimu))
+          all_N <- all_Cab <- all_Car <- all_Cw <- all_Cm <-
+            all_mND705 <- all_mSR705 <- array(data = NA, c(Nleaves,Nsimu))
 
           RMSE <- c()
 
           leaf_effect_N <- leaf_effect_Cab <- leaf_effect_Car <-
-            leaf_effect_Cm <- leaf_effect_Cw <- array(data = NA, dim = c(Nleaves,Nsimu))
+            leaf_effect_Cm <- leaf_effect_Cw <- all_redgedge <-
+            array(data = NA, dim = c(Nleaves,Nsimu))
 
           for (ileaf in seq(1,Nleaves)){
 
@@ -90,9 +94,23 @@ for (iGF in seq(1,2)){
                               Car = cCar[ileaf],
                               Cbrown = 0,
                               Cw = cCw[ileaf],
-                              Cm = cCm[ileaf])[["reflectance"]][pos]})),ncol = Nsimu)
+                              Cm = cCm[ileaf])[["reflectance"]]})),ncol = Nsimu)
+
+            current.spectra <- tmp
+            tmp <- tmp[pos,]
 
             array_mod_reflectance[,ileaf,] <- tmp
+
+            R750 <- current.spectra[which.min(abs(all.WLs-750)),]
+            R705 <- current.spectra[which.min(abs(all.WLs-705)),]
+            R445 <- current.spectra[which.min(abs(all.WLs-445)),]
+            mND705 <- (R750 - R705)/(R750 + R705 - 2*R445)
+            mSR705 <- (R750 - R445)/(R705 - R445)
+            rededge <- colMeans(current.spectra[all.WLs %in% seq(720,750),])
+
+            all_mND705[ileaf,] <- mND705
+            all_mSR705[ileaf,] <- mSR705
+            all_redgedge[ileaf,] <- rededge
 
             X <- as.vector(apply(tmp,c(1),mean))
             Y <- as.vector(data.2d.NA[,ileaf])
@@ -112,7 +130,10 @@ for (iGF in seq(1,2)){
                                            melt(all_Cab) %>% mutate(param = "Cab"),
                                            melt(all_Car) %>% mutate(param = "Car"),
                                            melt(all_Cw) %>% mutate(param = "Cw"),
-                                           melt(all_Cm) %>% mutate(param = "Cm"))) %>% filter(!is.na(value)) %>% rename(leaf = Var1,
+                                           melt(all_Cm) %>% mutate(param = "Cm"),
+                                           melt(all_mND705) %>% mutate(param = "mND705"),
+                                           melt(all_mSR705) %>% mutate(param = "mSR705"),
+                                           melt(all_redgedge) %>% mutate(param = "red.edge"))) %>% filter(!is.na(value)) %>% rename(leaf = Var1,
                                                                                                                         simu = Var2)
 
           Mean_effects <- bind_rows(list(data.frame(param = "N",value = as.vector(as.matrix(param_all[,"Nmean"]))),
@@ -152,7 +173,7 @@ for (iGF in seq(1,2)){
                                                                   by = c("wl","leaf"))
 
 
-          # matplot(WLs,data.2d.NA,type = 'l')
+          # matplot(WLs,data.2d.NA[,(3*(4-1)) + 1:3],type = 'l')
           # plot(param$chain2[,c("Nmean","Cabmean","Cwmean","Cmmean")])
           # plot(param$chain1[,"nu_leaf_Cab[1]"])
           #
@@ -188,11 +209,11 @@ for (iGF in seq(1,2)){
           #   stat_smooth(method = "lm", se = FALSE) +
           #   theme_bw()
           #
-          ggplot(data = df.species,
-                 aes(x = mod, y = obs, group = as.factor(wl))) +
-            geom_point(alpha = 0.4) +
-            stat_smooth(method = "lm", se = FALSE) +
-            theme_bw()
+          # ggplot(data = df.species,
+          #        aes(x = mod, y = obs, group = as.factor(wl))) +
+          #   geom_point(alpha = 0.4) +
+          #   stat_smooth(method = "lm", se = FALSE) +
+          #   theme_bw()
 
           df.RMSE <- bind_rows(list(df.RMSE,
                                     data.frame(GF = GFs[iGF],
@@ -211,6 +232,7 @@ for (iGF in seq(1,2)){
           leaf.count <- leaf.count + length(RMSE)
 
         } else {
+          # stop()
           warning(paste0(OP.file," does not exist"))
         }
       }
@@ -218,20 +240,88 @@ for (iGF in seq(1,2)){
   }
 }
 
-leaf.selection <- df.RMSE %>% filter(RMSE < 0.015) %>% pull(leaf.id)
+df.RMSE %>% ungroup() %>% filter(RMSE == max(RMSE))
+
+# df.RMSE.mod <- df.RMSE %>% mutate(RMSE = case_when(GF == "Tree" & site == "PNM" & species == 5 ~ 0,
+#                                                    TRUE ~ RMSE))
+#
+# df.RMSE %>% group_by(GF,site,species) %>% summarise(m = mean(RMSE)) %>% arrange(desc(m))
+# df.RMSE %>% filter(GF == "Liana",site == "FTS",species == 8) %>% arrange(desc(RMSE))
+# df.RMSE.mod %>% arrange(desc(RMSE))
+
+
+df.params %>% group_by(GF,site,species) %>% filter(param == "Cab") %>% summarise(value = mean(value)) %>% arrange(desc(value))
+
+df.params$GF <- factor(df.params$GF,levels = c("Liana","Tree"))
 
 ggplot(data = df.RMSE) +
   geom_density(aes(x = RMSE)) +
   facet_wrap(GF ~ site, scales = "free") +
   theme_bw()
 
-ggplot(data = df.params %>% filter(leaf.id %in% leaf.selection)) +
+ggplot(data = df.params %>% filter(param %in% c("N","Cab","Car","Cm","Cw"))) +
   geom_density_ridges(aes(x = value, y = site, fill = GF),
                       alpha = 0.3) +
   facet_wrap(~ param, scales = "free") +
   theme_bw()
 
-df.params %>% filter(leaf.id %in% leaf.selection) %>% group_by(GF,site,param) %>% summarise(value.m = median(value)) %>% arrange(param,site,GF)
+leaf.selection <- df.RMSE %>% filter(RMSE < 0.01) %>% pull(leaf.id)
+
+df.params.mod <- df.params %>% mutate(value = case_when(param == "Cm" ~ 1/(10*value),
+                                                        TRUE ~ value),
+                                      param = case_when(param == "Cm" ~ "SLA",
+                                                        TRUE ~ param))
+
+df.params.mod %>% filter(leaf.id %in% leaf.selection) %>%
+  group_by(GF,site,param) %>%
+  summarise(value.m = median(value),
+            .groups = "keep") %>% arrange(param,site,GF)
+
+ggplot(data = df.params.mod %>% filter(leaf.id %in% leaf.selection,
+                                   param %in% c("N","Cab","Car","SLA","Cw"))) +
+  geom_boxplot(aes(x = site, fill = GF,y = value)) +
+  facet_wrap(~ param, scales = "free") +
+  theme_bw() +
+  theme(legend.position = c(0.8,0.2))
+
+df.params.wide <- df.params.mod %>% pivot_wider(values_from = "value",
+                                            names_from = "param")
+
+df.params.wide.species <- df.params.wide %>% group_by(GF,site,species) %>%
+  summarise(N.mean = mean(N),
+            Cab.mean = mean(Cab),
+            Car.mean = mean(Car),
+            SLA.mean = mean(SLA),
+            Cw.mean = mean(Cw),
+            N.mean = mean(N),
+            mND705.mean = mean(mND705),
+            mSR705.mean = mean(mSR705),
+            red.edge.mean = mean(red.edge),
+            .groups = "keep")
+
+df.params.wide.species %>% group_by(GF,site) %>% summarise(Nspecies = length(N.mean),
+                                                           .groups = "keep")
+
+ggplot(data = df.params.wide.species,
+       aes(x = Cab.mean, y =  mND705.mean, color = GF)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(se = TRUE,method = "lm", alpha = 0.1) +
+  facet_wrap(~ site) +
+  theme_bw()
+
+ggplot(data = df.params.wide.species,
+       aes(x = Cab.mean, y =  mSR705.mean, color = GF,fill = GF)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(se = TRUE,method = "lm", alpha = 0.1) +
+  facet_wrap(~ site) +
+  theme_bw()
+
+ggplot(data = df.params.wide.species,
+       aes(x = Cab.mean, y =  red.edge.mean, color = GF,fill = GF)) +
+  geom_point(alpha = 0.5) +
+  stat_smooth(se = TRUE,method = "lm", alpha = 0.1) +
+  facet_wrap(~ site, nrow = 2) +
+  theme_bw()
 
 
 

@@ -115,7 +115,7 @@ saveRDS(data.spectra,file = "./data/All.spectra_corrected.RDS")
 ggplot(data = data.spectra %>% filter(GF == "Liana",
                                       site == "PNM",
                                       species.id %in% seq(6,10)),
-aes(x = wv, y = value, group = interaction(site,GF,as.factor(species.id),as.factor(ind.id),as.factor(leaf.id)))) +
+       aes(x = wv, y = value, group = interaction(site,GF,as.factor(species.id),as.factor(ind.id),as.factor(leaf.id)))) +
   # geom_line() +
   geom_line(aes(y = value.corrected),color = "red",linetype = 1) +
   # scale_x_continuous(limits = c(950,1050)) +
@@ -123,7 +123,7 @@ aes(x = wv, y = value, group = interaction(site,GF,as.factor(species.id),as.fact
   theme_bw()
 
 
-"# Correct the shift for the red-edge/green peak
+# Correct the wavelength-shift for the red-edge/green peak
 
 for (iGF in seq(1,length(GFs))){
   for (isite in seq(1,length(sites))){

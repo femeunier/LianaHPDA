@@ -46,11 +46,27 @@ for (iGF in seq(1,length(GFs))){
   }
 }
 
+# Hard-coded: datasets with problems
+# Clean dataset
+array_obs_reflectance[,1,1,5,,] <- NA # Weird species
+array_obs_reflectance[,2,1,1,4,] <- NA # Weird curve
+array_obs_reflectance[,2,1,13,,] <- NA # Weird species
+array_obs_reflectance[,2,1,17,,] <- NA # Weird species
+array_obs_reflectance[,1,2,6,c(1,3,4,5,6,7,10),] <- NA # Weird curves
+
+# Too much water (weird single cuves)
+array_obs_reflectance[,1,2,5,2,1] <- NA
+array_obs_reflectance[,1,2,5,5,1] <- NA
+array_obs_reflectance[,1,2,5,10,1] <- NA
+
+array_obs_reflectance[,1,1,2,,] <- NA # Species with very large reflectances ...
+array_obs_reflectance[,2,2,3,5,3] <- NA # weird curve (zero reflectance)
+
 maxNspecies <- max(Nspecies,na.rm = TRUE)
 maxNind <- max(Nind,na.rm = TRUE)
 
-# usethis::use_data(data.spectra, overwrite = TRUE)
-# usethis::use_data(array_obs_reflectance, overwrite = TRUE)
+usethis::use_data(data.spectra, overwrite = TRUE)
+usethis::use_data(array_obs_reflectance, overwrite = TRUE)
 usethis::use_data(Nspecies, overwrite = TRUE)
 usethis::use_data(Nind, overwrite = TRUE)
 
