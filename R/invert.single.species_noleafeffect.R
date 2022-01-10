@@ -106,7 +106,7 @@ invert.single.species_noleafeffect <- function(id,param.MCMC,param.simu,OP.folde
 
   run_prospect5 <- nimbleCode({
 
-    ref_prospect <- NIMprospect5(Nmean,
+    ref_prospect[1:Nwl] <- NIMprospect5(Nmean,
                                  Cabmean,
                                  Carmean,
                                  Cwmean,
@@ -115,7 +115,7 @@ invert.single.species_noleafeffect <- function(id,param.MCMC,param.simu,OP.folde
 
     for (ileaf in seq(1,Nleaves)){
 
-      reflectance[1:Nwl,ileaf] <- ref_prospect
+      reflectance[1:Nwl,ileaf] <- ref_prospect[1:Nwl]
 
       for (j in 1:Nwl){
         obs_reflectance[j,ileaf] ~ dnorm(reflectance[j,ileaf], sd = max(0,Standard.Dev))
@@ -174,6 +174,7 @@ invert.single.species_noleafeffect <- function(id,param.MCMC,param.simu,OP.folde
                                            talf = Nwl,
                                            t12 = Nwl,
                                            t21 = Nwl,
+                                           ref_prospect = Nwl,
                                            reflectance = c(Nwl,Nleaves)),
                          data = Data,
                          constants = Constants,
