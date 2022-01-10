@@ -5,6 +5,7 @@ library(dplyr)
 library(tidyr)
 library(reshape2)
 library(ggridges)
+library(RColorBrewer)
 
 Nsimus <- 100
 
@@ -16,20 +17,29 @@ all.WLs <- WLa:WLb
 
 WLs <- seq(WLa,WLb,Delta_WL)
 WLs <- WLs[(WLs > 450 & WLs < 680) | WLs > 800]
+
 pos <- which((WLa:WLb %in% WLs))
 Nwl <- length(pos)
 
 GFs <- c('Tree','Liana')
 sites <- c('PNM','FTS')
 
+basename <- "MCMC.single.species.GF"
+basename <- "Rcorrected"
+
 df.RMSE <- df.params <- data.frame()
 leaf.count <- 0
+
+array_obs_reflectance_all <- LianaHPDA::array_obs_reflectance
+array_mod_reflectance_all <- array(data = NA, dim = c(dim(array_obs_reflectance_all), Nsimus))
+
+Nleaf.per.ind <- 3
 
 for (iGF in seq(1,2)){
   for(isite in seq(1,2)){
     for (ispecies in seq(1,30)){
 
-      data.raw <- LianaHPDA::array_obs_reflectance[pos,iGF,isite,ispecies,,]
+      data.raw <- array_obs_reflectance_all[pos,iGF,isite,ispecies,,]
 
       if (!all(is.na(data.raw))){
 
@@ -38,11 +48,14 @@ for (iGF in seq(1,2)){
         dims <- dim(data.raw)
         data.2d <- matrix(data = data.raw,nrow = dims[1])
         data.2d.NA <- data.2d[,!is.na(data.2d[1,])]
+
         Nleaves <- ncol(data.2d.NA)
+
+        Nactual.ind <- Nleaves/3
 
         OP.file <- file.path("/home/femeunier/Documents/projects/LianaHPDA/out",
                              paste(GFs[iGF],sites[isite],ispecies,sep = "."),
-                             paste0("MCMC.single.species.GF",iGF,".site",isite,".species",ispecies,".RDS"))
+                             paste0(basename,".GF",iGF,".site",isite,".species",ispecies,".RDS"))
 
         if (file.exists(OP.file)){
 
@@ -65,6 +78,8 @@ for (iGF in seq(1,2)){
           leaf_effect_N <- leaf_effect_Cab <- leaf_effect_Car <-
             leaf_effect_Cm <- leaf_effect_Cw <- all_redgedge <-
             array(data = NA, dim = c(Nleaves,Nsimu))
+
+          compt.ind <- 1
 
           for (ileaf in seq(1,Nleaves)){
 
@@ -116,6 +131,15 @@ for (iGF in seq(1,2)){
             Y <- as.vector(data.2d.NA[,ileaf])
             LM <- lm(data.frame(x = X,y = Y),formula = y ~ x)
 
+            # df.all <- bind_rows(list(df.all,
+            #                          data.frame(wv = WLs,
+            #                                     mod = X,
+            #                                     obs = Y,
+            #                                     ind = compt.ind,
+            #                                     leaf = ceiling(ileaf/Nactual.ind),
+            #                                     GF = GFs[iGF],
+            #                                     site = sites[isite],
+            #                                     species = ispecies)))
             # plot(WLs,X,type = 'l')
             # lines(WLs,Y,col = "red")
             #
@@ -123,6 +147,13 @@ for (iGF in seq(1,2)){
             # abline(a = 0, b = 1, col ='red')
 
             RMSE[ileaf] <- sqrt(c(crossprod(LM$residuals))/length(LM$residuals))
+
+            array_mod_reflectance_all[pos,iGF,isite,ispecies,compt.ind,ceiling(ileaf/Nactual.ind),] <- tmp
+
+            compt.ind <- compt.ind + 1
+            if (compt.ind > Nactual.ind){
+              compt.ind <- 1
+            }
 
           }
 
@@ -240,35 +271,134 @@ for (iGF in seq(1,2)){
   }
 }
 
-df.RMSE %>% ungroup() %>% filter(RMSE == max(RMSE))
+stop()
 
-# df.RMSE.mod <- df.RMSE %>% mutate(RMSE = case_when(GF == "Tree" & site == "PNM" & species == 5 ~ 0,
-#                                                    TRUE ~ RMSE))
-#
-# df.RMSE %>% group_by(GF,site,species) %>% summarise(m = mean(RMSE)) %>% arrange(desc(m))
-# df.RMSE %>% filter(GF == "Liana",site == "FTS",species == 8) %>% arrange(desc(RMSE))
-# df.RMSE.mod %>% arrange(desc(RMSE))
+df.mod <- melt(apply(array_mod_reflectance_all[pos,,,,,,],c(1,2,3,4,5,6),mean,na.rm = TRUE)) %>%
+  rename(wv = Var1,
+         GF = Var2,
+         site = Var3,
+         species = Var4,
+         ind = Var5,
+         leaf = Var6,
+         mod = value) %>%
+  mutate(wv = WLs[wv],
+         GF = GFs[GF],
+         site = sites[site]) %>%
+  filter(!is.na(mod))
+
+df.obs <- melt(array_obs_reflectance_all[pos,,,,,]) %>%
+  rename(wv = Var1,
+         GF = Var2,
+         site = Var3,
+         species = Var4,
+         ind = Var5,
+         leaf = Var6,
+         obs = value) %>%
+  filter(!is.na(obs))
+
+df.all <- df.mod %>% left_join(df.obs,
+                               by = c("wv","GF","site","species","ind","leaf"))
+
+ggplot(data = df.all,
+       aes(x = mod,y = obs)) +
+  geom_hex(bins = 200) +
+  scale_fill_distiller(palette="OrRd",trans = "reverse") +
+  geom_abline(slope = 1, intercept = 0, color = "black",linetype = 3) +
+  theme_bw()
+
+ggplot(data = df.all,
+       aes(x = mod,y = obs)) +
+  geom_point(aes(color = as.factor(species))) +
+  scale_fill_distiller(palette="OrRd",trans = "reverse") +
+  geom_abline(slope = 1, intercept = 0, color = "black",linetype = 3) +
+  facet_wrap(GF ~ site) +
+  theme_bw()
 
 
-df.params %>% group_by(GF,site,species) %>% filter(param == "Cab") %>% summarise(value = mean(value)) %>% arrange(desc(value))
+# df.all.all <- df.all %>% left_join(df.all2 %>% rename(mod2 = mod,obs2 = obs),
+#                                    by = c("wv","GF","site","species","ind","leaf")) %>% mutate(diff.obs = obs2 - obs,
+#                                                                                          diff.mod = mod2 - mod)
 
+
+
+
+#############################################################################################################################
+
+df.mod.species <- bind_cols(list(
+  melt(apply(
+    array_mod_reflectance_all[pos, , , , , , ], c(1, 2, 3, 4), mean, na.rm = TRUE
+  )) %>% rename(
+    wv = Var1,
+    GF = Var2,
+    site = Var3,
+    species = Var4,
+    mod = value
+  ) %>%
+    mutate(wv = WLs[wv],
+           GF = GFs[GF],
+           site = sites[site]),
+  melt(apply(
+    array_mod_reflectance_all[pos, , , , , , ], c(1, 2, 3, 4), sd, na.rm = TRUE)) %>% dplyr::select(value) %>% rename(mod.sd = value))) %>%
+  filter(!is.na(mod))
+
+
+df.obs.species <- bind_cols(list(
+  melt(apply(array_obs_reflectance_all[pos,,,,,],c(1,2,3,4),mean,na.rm = TRUE)) %>% rename(wv = Var1,
+                                                                                           GF = Var2,
+                                                                                           site = Var3,
+                                                                                           species = Var4,
+                                                                                           obs = value),
+  melt(apply(
+    array_obs_reflectance_all[pos, , , , , ], c(1, 2, 3, 4), sd, na.rm = TRUE)) %>% dplyr::select(value) %>% rename(obs.sd = value))) %>%
+  filter(!is.na(obs))
+
+df.all.species <- df.mod.species %>% left_join(df.obs.species,
+                                               by = c("wv","GF","site","species"))
+
+
+ggplot(data = df.all.species,
+       aes(x = mod, y = obs, color = as.factor(species))) +
+  geom_point(size = 0.1) +
+  geom_errorbar(aes(ymin = obs - obs.sd, ymax = obs + obs.sd), show.legend = FALSE) +
+  geom_errorbarh(aes(xmin = mod - mod.sd, xmax = mod + mod.sd), show.legend = FALSE) +
+  scale_fill_distiller(palette="OrRd",trans = "reverse") +
+  geom_abline(slope = 1, intercept = 0, color = "black",linetype = 3) +
+  facet_grid(GF ~ site) +
+  theme_bw()
+
+df.all.species %>% mutate(SE = (mod - obs)**2) %>% group_by(GF,site,species) %>% summarise(RMSE = sqrt(sum(SE)/length(SE))) %>% arrange(desc(RMSE))
+
+
+ggplot() +
+  geom_line(data = df.all.species %>% filter(GF == "Liana",site == "FTS",species == 1),
+            aes(x = wv, y = mod), color = "black") +
+  geom_line(data = df.all.species %>% filter(GF == "Liana",site == "FTS",species == 1),
+            aes(x = wv, y = obs), color = "red") +
+  theme_bw()
+
+
+
+
+df.RMSE.all <- bind_rows(list(df.RMSE,
+                              df.RMSE %>% mutate(GF = "All", site = "")))
+
+ggplot(data = df.RMSE.all) +
+  geom_density_ridges(aes(x = RMSE, y = interaction(GF,site), fill = interaction(GF,site))) +
+  scale_x_continuous(limits = c(0,1.1*max(df.RMSE$RMSE))) +
+  theme_bw()
+
+leaf.selection <- df.RMSE %>% filter(RMSE < Inf) %>% pull(leaf.id)
 df.params$GF <- factor(df.params$GF,levels = c("Liana","Tree"))
 
-ggplot(data = df.RMSE) +
-  geom_density(aes(x = RMSE)) +
-  facet_wrap(GF ~ site, scales = "free") +
-  theme_bw()
 
-ggplot(data = df.params %>% filter(param %in% c("N","Cab","Car","Cm","Cw"))) +
-  geom_density_ridges(aes(x = value, y = site, fill = GF),
-                      alpha = 0.3) +
-  facet_wrap(~ param, scales = "free") +
-  theme_bw()
+df.params.wide.long <- df.params %>% pivot_wider(values_from = "value",
+                                                 names_from = "param") %>% mutate(WC =  (1-(1/(1+Cw/Cm)))*100) %>%
+  pivot_longer(cols = c("N","Cab","Car","Cw","Cm","WC","mND705","mSR705","red.edge"),
+               values_to = "value",
+               names_to = "param")
 
-leaf.selection <- df.RMSE %>% filter(RMSE < 0.01) %>% pull(leaf.id)
-
-df.params.mod <- df.params %>% mutate(value = case_when(param == "Cm" ~ 1/(10*value),
-                                                        TRUE ~ value),
+df.params.mod <- df.params.wide.long %>% mutate(value = case_when(param == "Cm" ~ 1/(10*value),
+                                                                  TRUE ~ value),
                                       param = case_when(param == "Cm" ~ "SLA",
                                                         TRUE ~ param))
 
@@ -277,12 +407,25 @@ df.params.mod %>% filter(leaf.id %in% leaf.selection) %>%
   summarise(value.m = median(value),
             .groups = "keep") %>% arrange(param,site,GF)
 
-ggplot(data = df.params.mod %>% filter(leaf.id %in% leaf.selection,
-                                   param %in% c("N","Cab","Car","SLA","Cw"))) +
-  geom_boxplot(aes(x = site, fill = GF,y = value)) +
+ggplot(data = df.params.mod %>%
+         filter(param %in% c("N","Cab","Car","SLA","WC")) %>%
+         filter(param != "SLA" | (param == "SLA" & value <= 30))) +
+  geom_density_ridges(aes(x = value, y = site, fill = GF),
+                      alpha = 0.3) +
   facet_wrap(~ param, scales = "free") +
+  theme_bw()
+
+ggplot(data = df.params.mod %>% filter(leaf.id %in% leaf.selection,
+                                       param %in% c("N","Cab","Car","SLA","WC")) %>%
+         filter(param != "SLA" | (param == "SLA" & value <= 50)),
+       aes(x = site, fill = GF,y = value)) +
+  geom_violin(trim=FALSE, position = position_dodge(0.9))+
+  geom_boxplot(aes(group = interaction(site,GF)),position = position_dodge(0.9),fill = NA, width = 0.1,
+               outlier.shape=NA) +
+  facet_wrap(~ param, scales = "free", nrow = 1) +
   theme_bw() +
-  theme(legend.position = c(0.8,0.2))
+  labs(x = "", y = "", fill = "Growth form") +
+  theme(legend.position = c(0.14,0.85))
 
 df.params.wide <- df.params.mod %>% pivot_wider(values_from = "value",
                                             names_from = "param")
