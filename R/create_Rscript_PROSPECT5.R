@@ -1,4 +1,5 @@
-create_Rscript_PROSPECT5 <- function(file,id,param.MCMC,param.simu,OP.folder,basename = "MCMC.single.species") {
+create_Rscript_PROSPECT5 <- function(file,id,param.MCMC,param.simu,OP.folder,basename = "MCMC.single.species",
+                                     fun = "invert.single.species") {
 
   ########################################################################
 
@@ -40,6 +41,6 @@ create_Rscript_PROSPECT5 <- function(file,id,param.MCMC,param.simu,OP.folder,bas
   write(paste0("param.MCMC <- list(Nchains = ",Nchains,",nburnin = ",nburnin,", niter = ",niter,", thin = ",thin,")"), file=file,append=TRUE)
 
   write("",file=file,append=TRUE)
-  write(paste0("invert.single.species(id,param.MCMC,param.simu,'",OP.folder,"','",basename,"')"),file=file,append=TRUE)
+  write(paste0(fun,"(id,param.MCMC,param.simu,'",OP.folder,"','",basename,"')"),file=file,append=TRUE)
 
 }

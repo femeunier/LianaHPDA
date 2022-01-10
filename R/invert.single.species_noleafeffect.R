@@ -1,4 +1,4 @@
-invert.single.species <- function(id,param.MCMC,param.simu,OP.folder,basename){
+invert.single.species_noleafeffect <- function(id,param.MCMC,param.simu,OP.folder,basename){
 
   ###########################################################
   iGF <- id[["iGF"]]
@@ -106,20 +106,16 @@ invert.single.species <- function(id,param.MCMC,param.simu,OP.folder,basename){
 
   run_prospect5 <- nimbleCode({
 
+    ref_prospect <- NIMprospect5(Nmean,
+                                 Cabmean,
+                                 Carmean,
+                                 Cwmean,
+                                 Cmmean,
+                                 dataspec_p5[,], talf[],t12[],t21[], Nwl)
+
     for (ileaf in seq(1,Nleaves)){
 
-      nu_leaf_N[ileaf] ~ dnorm(0, sd = sd_leaf_N)
-      nu_leaf_Cab[ileaf] ~ dnorm(0, sd = sd_leaf_Cab)
-      nu_leaf_Car[ileaf] ~ dnorm(0, sd = sd_leaf_Car)
-      nu_leaf_Cw[ileaf] ~ dnorm(0, sd = sd_leaf_Cw)
-      nu_leaf_Cm[ileaf] ~ dnorm(0, sd = sd_leaf_Cm)
-
-      reflectance[1:Nwl,ileaf] <- NIMprospect5(Nmean + nu_leaf_N[ileaf],
-                                               Cabmean + nu_leaf_Cab[ileaf],
-                                               Carmean + nu_leaf_Car[ileaf],
-                                               Cwmean + nu_leaf_Cw[ileaf],
-                                               Cmmean + nu_leaf_Cm[ileaf],
-                                               dataspec_p5[,], talf[],t12[],t21[], Nwl)
+      reflectance[1:Nwl,ileaf] <- ref_prospect
 
       for (j in 1:Nwl){
         obs_reflectance[j,ileaf] ~ dnorm(reflectance[j,ileaf], sd = max(0,Standard.Dev))
@@ -133,12 +129,6 @@ invert.single.species <- function(id,param.MCMC,param.simu,OP.folder,basename){
     Carmean ~ dunif(0,100)
     Cwmean ~ dunif(0.,0.1)
     Cmmean ~ dunif(0.,0.1)
-
-    sd_leaf_N ~ dunif(0.0,0.5)
-    sd_leaf_Cab ~ dunif(0.,30)
-    sd_leaf_Car ~ dunif(0.,10)
-    sd_leaf_Cw ~ dunif(0.,0.02)
-    sd_leaf_Cm ~ dunif(0.,0.02)
 
   })
 
