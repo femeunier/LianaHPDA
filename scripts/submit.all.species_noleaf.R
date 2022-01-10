@@ -58,7 +58,7 @@ for (iGF in seq(1,2)){
         if (!dir.exists(dir.run)) dir.create(dir.run)
         if (!dir.exists(dir.out)) dir.create(dir.out)
 
-        create_Rscript_PROSPECT5(file.path(dir.run,"script.R"),id,param.MCMC,param.simu,dir.out, basename = "Rcorrected_noleaf",fun = "invert.single.species_noleafeffect")
+        create_Rscript_PROSPECT5(file.path(dir.run,"script_noleaf.R"),id,param.MCMC,param.simu,dir.out, basename = "Rcorrected_noleaf",fun = "invert.single.species_noleafeffect")
         folders.all <- c(folders.all,dir.run)
 
       }
@@ -74,7 +74,7 @@ for (ijob in seq(1,Njobs)){
   simus <- folders.all[((ijob - 1)*run_per_nodes + 1):(ijob*run_per_nodes)]
 
   job_list_file <- file.path(cfolder,'joblist.txt')
-  writeLines(paste0("echo ",'"',"source('script.R')",'"',"| R --save"),con = job_list_file)
+  writeLines(paste0("echo ",'"',"source('script_noleaf.R')",'"',"| R --save"),con = job_list_file)
 
   cmd_l <- lapply(simus,function(sim){
     write(sim,file=job_list_file,append=TRUE)})
